@@ -7,6 +7,7 @@ This file creates your application.
 
 from app import app,db
 from flask import render_template, request, jsonify, send_file
+from flask_wtf.csrf import generate_csrf
 from werkzeug.utils import secure_filename
 from app.models import Movies
 from app.forms import MovieForm
@@ -26,15 +27,14 @@ def index():
 def movies():
     form = MovieForm()
     if request.method == 'POST':
-        if not form.validate_on_submit():
-            return jsonify(form_errors(form=form))
-        else:
+        if form.validate_on_submit():
+            
             title = form.title.data
             poster = form.poster.data
             postername = secure_filename(poster.filename)
-            description = form.decription.data
+            description = form.description.data
 
-            currenttime= datetime.now()            
+            currenttime= datetime.datetime.now()            
             response = {
                 "message": "Movie Successfully added",
                 "title": title,
@@ -47,7 +47,15 @@ def movies():
             moviedetails = Movies(title,description,postername,currenttime)
             db.session.add(moviedetails)
             db.session.commit()
-            return jsonify(response)
+            return jsonify(data=response)
+
+        errors = form_errors(form)
+        response = {'errors': errors}
+        return jsonify(error=response)
+
+@app.route('/api/v1/csrf-token', methods=['GET'])
+def get_csrf():
+    return jsonify({'csrf_token': generate_csrf()})
 
 ###
 # The functions below should be applicable to all Flask apps.
